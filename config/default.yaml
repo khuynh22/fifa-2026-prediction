@@ -1,0 +1,22 @@
+paths:
+  data_dir: data
+  raw_dir: data/raw
+  processed_dir: data/processed
+  models_dir: models
+  reports_dir: reports
+train_start: "2010-01-01"
+random_seed: 42
+sources:
+  results_csv: data/raw/results.csv          # Kaggle "International football results"
+  fifa_rankings_csv: data/raw/fifa_rankings.csv
+  elo_csv: data/raw/elo.csv
+api:
+  base_url: "https://v3.football.api-sports.io"
+  key_env: "FOOTBALL_API_KEY"
+elo:
+  k: 40
+  home_advantage: 65
+  initial: 1500
+features:
+  form_windows: [5, 10, 20]
+hosts_2026: ["United States", "Mexico", "Canada"]
