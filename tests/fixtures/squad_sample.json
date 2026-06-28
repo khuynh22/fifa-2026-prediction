@@ -1,0 +1,6 @@
+{"team": "Brazil", "players": [
+  {"name": "Player A", "position": "Attacker", "age": 26, "market_value": 90000000,
+   "minutes": 2700, "xg": 18.2, "xa": 7.1, "injured": false},
+  {"name": "Player B", "position": "Defender", "age": 31, "market_value": 25000000,
+   "minutes": 2500, "xg": 1.0, "xa": 1.4, "injured": true}
+]}
