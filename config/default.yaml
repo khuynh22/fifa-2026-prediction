@@ -21,3 +21,4 @@ features:
   form_windows: [5, 10, 20]
 hosts_2026: ["United States", "Mexico", "Canada"]
 val_cutoff: "2022-01-01"
+bracket_path: config/bracket_2026.yaml

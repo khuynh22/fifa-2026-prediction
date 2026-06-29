@@ -79,10 +79,14 @@ def run_predict(cfg, models=None, matches_csv=None, bracket_path=None, squad_agg
     csv = matches_csv or cfg.raw["sources"]["results_csv"]
     matches = load_matches(csv, train_start=cfg.train_start)
     ensemble = models if models is not None else load_models(cfg.models_dir)[0]
-    fb = build_feature_builder(cfg, matches, squad_agg=squad_agg)
     bpath = bracket_path or cfg.raw.get("bracket_path", "config/bracket_2026.yaml")
     teams, decided, as_of = _load_bracket_cfg(bpath)
     as_of_date = pd.Timestamp(as_of) if as_of else matches["date"].max()
+    # Forecast "as of" the bracket date: build prediction features from matches up
+    # to and including as_of_date only, so the model cannot peek at later results
+    # (the dataset may already contain games played after the forecast date).
+    matches = matches[matches["date"] <= as_of_date]
+    fb = build_feature_builder(cfg, matches, squad_agg=squad_agg)
     win_prob = build_win_prob(ensemble, fb, as_of_date, decided=decided)
     champ = champion_probabilities(teams, win_prob)
     rounds = round_probabilities(teams, win_prob)
@@ -96,15 +100,25 @@ def run_predict(cfg, models=None, matches_csv=None, bracket_path=None, squad_agg
     return result
 
 
+def _load_market_probs(cfg) -> dict:
+    """Implied champion probabilities from data/reference/market_odds_2026.csv, or {}."""
+    from fifa2026.ingest.odds import parse_winner_odds, implied_champion_probs
+    path = Path("data/reference/market_odds_2026.csv")
+    if not path.exists():
+        return {}
+    rows = pd.read_csv(path).to_dict("records")
+    return implied_champion_probs(parse_winner_odds(rows))
+
+
 def run_evaluate(cfg, matches_csv=None) -> dict:
-    from fifa2026.ingest.odds import implied_champion_probs
     csv = matches_csv or cfg.raw["sources"]["results_csv"]
     matches = load_matches(csv, train_start=cfg.train_start)
     m = matches.dropna(subset=["home_score", "away_score"]).sort_values("date").reset_index(drop=True)
+    market = _load_market_probs(cfg)
     cutoff = cfg.raw.get("val_cutoff", "2022-01-01")
     train_idx, test_idx = temporal_split(m, cutoff=cutoff)
     if len(test_idx) == 0:
-        return {"metrics": {}, "calibration": [], "market": {}}
+        return {"metrics": {}, "calibration": [], "market": market}
     fb = build_feature_builder(cfg, m.iloc[train_idx], squad_agg=None)
     Xtr, ytr, gh, ga = fb.build_training_matrix(m.iloc[train_idx])
     poisson = PoissonModel().fit(Xtr, ytr, goals_home=gh, goals_away=ga)
@@ -117,7 +131,7 @@ def run_evaluate(cfg, matches_csv=None) -> dict:
     yte = np.array([outcome(int(r["home_score"]), int(r["away_score"]))
                     for _, r in m.iloc[test_idx].iterrows()])
     proba = ensemble.predict_proba(Xte[Xtr.columns])
-    result = {"metrics": evaluate_probs(yte, proba), "calibration": [], "market": {}}
+    result = {"metrics": evaluate_probs(yte, proba), "calibration": [], "market": market}
     Path(cfg.reports_dir).mkdir(parents=True, exist_ok=True)
     (Path(cfg.reports_dir) / "evaluation.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     return result
