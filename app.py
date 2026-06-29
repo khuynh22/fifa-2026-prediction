@@ -59,7 +59,7 @@ def main():
                     "data/reference/injuries_2026.yaml and re-run `make predict`.")
         else:
             import pandas as pd
-            rows = [{"team": t, "players out": ", ".join(v.get("out", [])) or len(v.get("out", [])),
+            rows = [{"team": t, "players out": ", ".join(v.get("out", [])),
                      "elo penalty": v.get("elo_penalty")} for t, v in avail.items()]
             st.dataframe(pd.DataFrame(rows).sort_values("elo penalty"))
 
