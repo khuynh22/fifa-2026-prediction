@@ -1,35 +1,43 @@
-# 32 teams in bracket-slot order. Round-of-32 ties are (slot0 vs slot1),
-# (slot2 vs slot3), ... Fill with the actual 2026 Round-of-32 bracket.
+# 2026 FIFA World Cup Round-of-32 bracket (as of 2026-06-28), in bracket-slot
+# order so the recursive bracket DP reproduces the real M73->M103 adjacency.
+# Source: en.wikipedia.org/wiki/2026_FIFA_World_Cup_knockout_stage
+as_of: "2026-06-28"
 teams:
-  - "Team01"
-  - "Team02"
-  - "Team03"
-  - "Team04"
-  - "Team05"
-  - "Team06"
-  - "Team07"
-  - "Team08"
-  - "Team09"
-  - "Team10"
-  - "Team11"
-  - "Team12"
-  - "Team13"
-  - "Team14"
-  - "Team15"
-  - "Team16"
-  - "Team17"
-  - "Team18"
-  - "Team19"
-  - "Team20"
-  - "Team21"
-  - "Team22"
-  - "Team23"
-  - "Team24"
-  - "Team25"
-  - "Team26"
-  - "Team27"
-  - "Team28"
-  - "Team29"
-  - "Team30"
-  - "Team31"
-  - "Team32"
+  - Germany          # M74
+  - Paraguay
+  - France           # M77
+  - Sweden
+  - Canada           # M73
+  - South Africa
+  - Netherlands      # M75
+  - Morocco
+  - Portugal         # M83
+  - Croatia
+  - Spain            # M84
+  - Austria
+  - United States    # M81
+  - Bosnia and Herzegovina
+  - Belgium          # M82
+  - Senegal
+  - Brazil           # M76
+  - Japan
+  - Ivory Coast      # M78
+  - Norway
+  - Mexico           # M79
+  - Ecuador
+  - England          # M80
+  - DR Congo
+  - Argentina        # M86
+  - Cape Verde
+  - Australia        # M88
+  - Egypt
+  - Switzerland      # M85
+  - Algeria
+  - Colombia         # M87
+  - Ghana
+# Already-played R32 ties (pinned to certainty in the forecast).
+decided:
+  - {winner: Canada, loser: South Africa}
+  - {winner: Germany, loser: Paraguay}
+  - {winner: Netherlands, loser: Morocco}
+  - {winner: France, loser: Sweden}
