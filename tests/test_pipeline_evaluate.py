@@ -14,6 +14,20 @@ def _synth_csv(tmp_path):
                      "city": "", "country": "", "neutral": True})
     p = tmp_path / "results.csv"; pd.DataFrame(rows).to_csv(p, index=False); return p
 
+def test_calibration_bins_structure():
+    import numpy as np
+    from fifa2026.pipeline import _calibration_bins
+    y = np.array([0, 0, 1, 2, 0, 2, 1, 0])
+    proba = np.array([[0.8, 0.1, 0.1], [0.6, 0.2, 0.2], [0.2, 0.5, 0.3], [0.1, 0.2, 0.7],
+                      [0.9, 0.05, 0.05], [0.2, 0.2, 0.6], [0.3, 0.5, 0.2], [0.7, 0.2, 0.1]])
+    bins = _calibration_bins(y, proba, n_bins=5)
+    assert len(bins) >= 1
+    for b in bins:
+        assert set(b) == {"pred", "obs", "n"}
+        assert 0.0 <= b["pred"] <= 1.0 and 0.0 <= b["obs"] <= 1.0
+    assert _calibration_bins(np.array([]), np.zeros((0, 3))) == []  # empty -> no bins
+
+
 def test_run_evaluate_writes_metrics(tmp_path):
     cfg = load_config()
     object.__setattr__(cfg, "reports_dir", tmp_path / "reports")

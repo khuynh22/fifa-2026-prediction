@@ -110,6 +110,29 @@ def _load_market_probs(cfg) -> dict:
     return implied_champion_probs(parse_winner_odds(rows))
 
 
+def _calibration_bins(y_true, proba, n_bins=10) -> list:
+    """Confidence-reliability curve: bin test predictions by their max probability
+    (model confidence) and compare mean confidence (`pred`) to empirical accuracy
+    (`obs`) in each bin. A well-calibrated model lies on the diagonal."""
+    proba = np.asarray(proba)
+    y_true = np.asarray(y_true)
+    if len(y_true) == 0:
+        return []
+    conf = proba.max(axis=1)
+    correct = (proba.argmax(axis=1) == y_true).astype(float)
+    edges = np.linspace(1.0 / proba.shape[1], 1.0, n_bins + 1)
+    out = []
+    for i, (lo, hi) in enumerate(zip(edges[:-1], edges[1:])):
+        last = i == n_bins - 1
+        mask = (conf >= lo) & (conf <= hi) if last else (conf >= lo) & (conf < hi)
+        if mask.sum() == 0:
+            continue
+        out.append({"pred": float(conf[mask].mean()),
+                    "obs": float(correct[mask].mean()),
+                    "n": int(mask.sum())})
+    return out
+
+
 def run_evaluate(cfg, matches_csv=None) -> dict:
     csv = matches_csv or cfg.raw["sources"]["results_csv"]
     matches = load_matches(csv, train_start=cfg.train_start)
@@ -131,7 +154,8 @@ def run_evaluate(cfg, matches_csv=None) -> dict:
     yte = np.array([outcome(int(r["home_score"]), int(r["away_score"]))
                     for _, r in m.iloc[test_idx].iterrows()])
     proba = ensemble.predict_proba(Xte[Xtr.columns])
-    result = {"metrics": evaluate_probs(yte, proba), "calibration": [], "market": market}
+    result = {"metrics": evaluate_probs(yte, proba),
+              "calibration": _calibration_bins(yte, proba), "market": market}
     Path(cfg.reports_dir).mkdir(parents=True, exist_ok=True)
     (Path(cfg.reports_dir) / "evaluation.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     return result
