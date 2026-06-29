@@ -84,6 +84,9 @@ def run_predict(cfg, models=None, matches_csv=None, bracket_path=None, injuries_
     bpath = bracket_path or cfg.raw.get("bracket_path", "config/bracket_2026.yaml")
     teams, decided, as_of = _load_bracket_cfg(bpath)
     as_of_date = pd.Timestamp(as_of) if as_of else matches["date"].max()
+    # Forecast "as of" the bracket date: build prediction features from matches up
+    # to and including as_of_date only, so the model cannot peek at later results
+    # (the dataset may already contain games played after the forecast date).
     matches = matches[matches["date"] <= as_of_date]
     ipath = injuries_path or cfg.raw.get("injuries_path", "data/reference/injuries_2026.yaml")
     injuries = load_injuries(ipath)

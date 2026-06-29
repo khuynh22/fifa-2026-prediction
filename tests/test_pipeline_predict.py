@@ -1,4 +1,6 @@
+import itertools
 import json
+import numpy as np
 import pandas as pd
 from fifa2026.config import load_config
 from fifa2026.pipeline import run_train, run_predict
@@ -17,8 +19,6 @@ def _synth_csv(tmp_path):
                "Canada": 3, "South Africa": 1, "Netherlands": 6, "Morocco": 8}
     elo = {t: 1500.0 + 5.0 * quality[t] for t in teams}  # small quality seed
     K = 40.0
-    import itertools
-    import numpy as np
     rng = np.random.default_rng(0)
     rows = []
     d = pd.Timestamp("2011-01-01")
@@ -64,8 +64,6 @@ def test_run_predict_sums_to_one_and_pins(tmp_path):
 
 
 def test_injuries_lower_champion_prob(tmp_path):
-    from fifa2026.config import load_config
-    from fifa2026.pipeline import run_train, run_predict
     cfg = load_config()
     object.__setattr__(cfg, "models_dir", tmp_path / "models")
     object.__setattr__(cfg, "reports_dir", tmp_path / "reports")
