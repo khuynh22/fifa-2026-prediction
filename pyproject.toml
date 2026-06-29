@@ -31,3 +31,7 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+filterwarnings = [
+    # joblib + NumPy 2.5 internal deprecation during model pickling (third-party, not our code)
+    "ignore:Setting the shape on a NumPy array.*:DeprecationWarning",
+]
