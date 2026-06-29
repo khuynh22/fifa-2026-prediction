@@ -1,0 +1,17 @@
+city,country,lat,lon,altitude_m
+Mexico City,Mexico,19.43,-99.13,2240
+Guadalajara,Mexico,20.67,-103.35,1566
+Monterrey,Mexico,25.69,-100.32,540
+Toronto,Canada,43.65,-79.38,76
+Vancouver,Canada,49.28,-123.12,4
+Inglewood,United States,33.95,-118.34,38
+East Rutherford,United States,40.81,-74.07,2
+Arlington,United States,32.75,-97.08,184
+Houston,United States,29.76,-95.37,24
+Foxborough,United States,42.09,-71.26,86
+Atlanta,United States,33.75,-84.39,320
+Miami Gardens,United States,25.96,-80.24,3
+Kansas City,United States,39.10,-94.58,277
+Philadelphia,United States,39.95,-75.17,12
+Seattle,United States,47.61,-122.33,53
+San Francisco Bay Area,United States,37.40,-121.97,9

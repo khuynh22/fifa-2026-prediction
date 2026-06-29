@@ -7,6 +7,13 @@ def test_scoreline_probs_sum_to_one_and_favor_higher_lambda():
     assert abs(p.sum() - 1.0) < 1e-6
     assert p[0] > p[2]  # home (higher lambda) more likely to win
 
+def test_scoreline_probs_extreme_lambda_no_nan():
+    import numpy as np
+    from fifa2026.models.poisson import scoreline_probs
+    p = scoreline_probs(800.0, 800.0)  # both lambdas >> max_goals -> float underflow -> NaN without guard
+    assert np.all(np.isfinite(p))
+    assert abs(p.sum() - 1.0) < 1e-9
+
 def test_poisson_fits_and_predicts_shape():
     rng = np.random.default_rng(42)
     n = 200
