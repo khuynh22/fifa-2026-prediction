@@ -1,7 +1,9 @@
 from __future__ import annotations
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
+import json
 import pandas as pd
+import yaml
 from fifa2026.ingest.matches import load_matches
 from fifa2026.ingest.reference import load_confederations
 from fifa2026.features.elo import EloEngine
@@ -13,6 +15,8 @@ from fifa2026.models.boosted import BoostedModel
 from fifa2026.models.ensemble import EnsembleModel
 from fifa2026.evaluate.backtest import temporal_split
 from fifa2026.persistence import save_models
+from fifa2026.cli import build_win_prob
+from fifa2026.knockout.bracket import champion_probabilities, round_probabilities
 
 @dataclass
 class PredictionResult:
@@ -59,3 +63,33 @@ def run_train(cfg, matches_csv=None) -> Path:
                 {"feature_cols": list(X.columns), "trained_on": cfg.train_start,
                  "weight": ensemble.weight})
     return Path(cfg.models_dir)
+
+
+def _load_bracket_cfg(path):
+    data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    teams = list(data["teams"])
+    decided = {frozenset((d["winner"], d["loser"])): d["winner"]
+               for d in data.get("decided", [])}
+    return teams, decided, data.get("as_of", "")
+
+
+def run_predict(cfg, models=None, matches_csv=None, bracket_path=None, squad_agg=None) -> PredictionResult:
+    from fifa2026.persistence import load_models
+    csv = matches_csv or cfg.raw["sources"]["results_csv"]
+    matches = load_matches(csv, train_start=cfg.train_start)
+    ensemble = models if models is not None else load_models(cfg.models_dir)[0]
+    fb = build_feature_builder(cfg, matches, squad_agg=squad_agg)
+    bpath = bracket_path or cfg.raw.get("bracket_path", "config/bracket_2026.yaml")
+    teams, decided, as_of = _load_bracket_cfg(bpath)
+    as_of_date = pd.Timestamp(as_of) if as_of else matches["date"].max()
+    win_prob = build_win_prob(ensemble, fb, as_of_date, decided=decided)
+    champ = champion_probabilities(teams, win_prob)
+    rounds = round_probabilities(teams, win_prob)
+    ties = [{"home": teams[i], "away": teams[i + 1],
+             "p_home": win_prob(teams[i], teams[i + 1])} for i in range(0, len(teams), 2)]
+    result = PredictionResult(champion_probs=champ, round_probs=rounds, tie_probs=ties,
+                              as_of=as_of, meta={"n_teams": len(teams)})
+    Path(cfg.reports_dir).mkdir(parents=True, exist_ok=True)
+    (Path(cfg.reports_dir) / "prediction.json").write_text(
+        json.dumps(result.to_dict(), indent=2), encoding="utf-8")
+    return result
