@@ -1,9 +1,7 @@
 from __future__ import annotations
 import argparse
 import pandas as pd
-from fifa2026.config import load_config
 from fifa2026.knockout.resolve import resolve_tie
-from fifa2026.knockout.bracket import load_bracket
 
 def build_win_prob(model, feature_builder, as_of_date, pen=None, depth=None):
     pen = pen or {}
