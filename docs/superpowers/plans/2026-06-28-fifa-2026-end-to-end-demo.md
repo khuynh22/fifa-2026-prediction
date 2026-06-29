@@ -462,17 +462,16 @@ import numpy as np
 from fifa2026.knockout.bracket import round_probabilities
 
 def test_round_probabilities_structure_and_sums():
-    teams = ["A", "B", "C", "D", "E", "F", "G", "H"]
-    strength = {t: s for t, s in zip(teams, [8, 1, 7, 2, 6, 3, 5, 4])}
+    teams = ["A", "B", "C", "D"]
+    strength = {"A": 8, "B": 2, "C": 6, "D": 4}
     def win_prob(a, b):
         return 1.0 / (1.0 + np.exp(-(strength[a] - strength[b])))
     rp = round_probabilities(teams, win_prob)
+    # All five stage keys are always present (labels assume a 32-team bracket).
     assert set(rp["A"]) == {"reach_R16", "reach_QF", "reach_SF", "reach_final", "win"}
-    # 8 teams -> rounds present: reach_QF (win of size-2), reach_SF (size-4), reach_final?(size-8 == win)
-    # Every team reaches its first knockout match with prob 1 conceptually; check monotonicity:
+    # Reaching an earlier round is at least as likely as winning it all (monotonic).
     for t in teams:
-        assert rp[t]["reach_QF"] >= rp[t]["reach_SF"] - 1e-9
-        assert rp[t]["reach_SF"] >= rp[t]["win"] - 1e-9
+        assert rp[t]["reach_R16"] >= rp[t]["win"] - 1e-9
     # Champion probabilities (the "win" column) sum to 1.
     assert abs(sum(rp[t]["win"] for t in teams) - 1.0) < 1e-9
     # Strongest team most likely to win.
@@ -484,29 +483,29 @@ def test_round_probabilities_structure_and_sums():
 - [ ] **Step 6: Implement `round_probabilities` in `src/fifa2026/knockout/bracket.py`** (append; reuses `_solve`):
 
 ```python
-# Map subtree size -> the stage a team reaches by WINNING that subtree.
-_ROUND_BY_SIZE = {2: "reach_QF", 4: "reach_SF", 8: "reach_final", 16: "win", 32: "win"}
+# Map subtree size -> the stage a team reaches by WINNING that subtree,
+# for a full 32-team bracket: win a size-2 tie => reach R16, size-4 => QF, etc.
+_STAGE_BY_SIZE = {2: "reach_R16", 4: "reach_QF", 8: "reach_SF", 16: "reach_final", 32: "win"}
+_STAGES = ["reach_R16", "reach_QF", "reach_SF", "reach_final", "win"]
 
 def round_probabilities(teams: list[str], win_prob) -> dict[str, dict[str, float]]:
     """For each team, probability of reaching each knockout stage.
 
-    Keys: reach_R16, reach_QF, reach_SF, reach_final, win. 'reach_R16' is 1.0 for
-    all teams already in the Round of 32. Other stages are computed by solving the
-    sub-bracket of the appropriate size around each team."""
+    Keys: reach_R16, reach_QF, reach_SF, reach_final, win. A team's probability of
+    reaching a stage equals its probability of WINNING the sub-bracket whose winner
+    advances to that stage, computed by solving the chunk of the appropriate size.
+    Stage labels assume a 32-team bracket; the top stage (chunk size == n) is always
+    'win'. For smaller brackets, the deeper labels simply stay 0.0."""
     n = len(teams)
     if n < 1 or (n & (n - 1)) != 0:
         raise ValueError("bracket size must be a positive power of 2")
-    out = {t: {"reach_R16": 1.0, "reach_QF": 0.0, "reach_SF": 0.0,
-               "reach_final": 0.0, "win": 0.0} for t in teams}
-    # For each level, partition into chunks of that size and solve each chunk.
+    out = {t: {s: 0.0 for s in _STAGES} for t in teams}
     for size in (2, 4, 8, 16, 32):
         if size > n:
             break
-        key = "win" if size == n else _ROUND_BY_SIZE[size]
+        key = "win" if size == n else _STAGE_BY_SIZE[size]
         for i in range(0, n, size):
-            chunk = teams[i:i + size]
-            for t, p in _solve(chunk, win_prob).items():
-                # take the deepest (largest-size) solve for each labeled stage
+            for t, p in _solve(teams[i:i + size], win_prob).items():
                 out[t][key] = p
     return out
 ```
