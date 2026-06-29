@@ -34,7 +34,8 @@ def main():
     st.title("🏆 FIFA World Cup 2026 — Champion Predictor")
     st.caption(f"Forecast as of {prediction.get('as_of', '')}")
     figs = build_dashboard(prediction, evaluation, market)
-    tabs = st.tabs(["Champion odds", "Bracket", "Survival", "Team explorer", "Calibration"])
+    tabs = st.tabs(["Champion odds", "Bracket", "Survival", "Team explorer",
+                    "Calibration", "Availability"])
     with tabs[0]:
         st.plotly_chart(figs["champion"], use_container_width=True)
         if "market" in figs:
@@ -50,6 +51,17 @@ def main():
     with tabs[4]:
         st.plotly_chart(figs["calibration"], use_container_width=True)
         st.write(evaluation.get("metrics", {}))
+    with tabs[5]:
+        st.subheader("Availability impact")
+        avail = (prediction.get("meta") or {}).get("availability") or {}
+        if not avail:
+            st.info("No availability adjustments applied. Edit "
+                    "data/reference/injuries_2026.yaml and re-run `make predict`.")
+        else:
+            import pandas as pd
+            rows = [{"team": t, "players out": ", ".join(v.get("out", [])) or len(v.get("out", [])),
+                     "elo penalty": v.get("elo_penalty")} for t, v in avail.items()]
+            st.dataframe(pd.DataFrame(rows).sort_values("elo penalty"))
 
 if __name__ == "__main__":
     main()

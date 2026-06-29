@@ -19,6 +19,10 @@ market.
   resolver**, then walks the actual bracket to a champion pick with per-round
   survival probabilities.
 - Is **benchmarked against bookmaker odds** (odds are never a model input).
+- Adjusts the forecast for **player availability**: key absences listed in
+  `data/reference/injuries_2026.yaml` apply an effective-Elo penalty (free,
+  curated). Live-API enrichment is optional future work (the free API tier does
+  not expose the 2026 season or national-team injuries).
 
 ## Quick start
 
