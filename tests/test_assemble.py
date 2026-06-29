@@ -1,4 +1,3 @@
-import pytest
 import numpy as np
 import pandas as pd
 from fifa2026.features.elo import EloEngine
@@ -15,13 +14,13 @@ def _matches():
         "neutral": [True, True, True], "country": ["X", "X", "Y"],
     })
 
-def _builder(m):
+def _builder(m, rating_adjustment=None):
     return FeatureBuilder(
         elo=EloEngine(home_advantage=0).fit(m),
         form=FormFeatures().fit(m),
         context=ContextFeatures().fit(m),
         confederations={"A": "UEFA", "B": "UEFA"},
-        squad_agg=None, hosts=[], form_windows=[5],
+        hosts=[], form_windows=[5], rating_adjustment=rating_adjustment,
     )
 
 def test_row_has_differential_features():
@@ -44,15 +43,14 @@ def test_build_training_matrix_returns_4tuple_aligned():
     assert list(ga) == [0, 0, 1], "goals_away must match date-sorted away_score"
 
 
-def test_build_training_matrix_rejects_static_squad_agg():
+def test_rating_adjustment_shifts_elo_diff_symmetrically():
     m = _matches()
-    fb = FeatureBuilder(
-        elo=EloEngine(home_advantage=0).fit(m), form=FormFeatures().fit(m),
-        context=ContextFeatures().fit(m), confederations={"A": "UEFA", "B": "UEFA"},
-        squad_agg=pd.DataFrame({"squad_value": [1.0]}), hosts=[], form_windows=[5],
-    )
-    with pytest.raises(ValueError, match="squad_agg is a static"):
-        fb.build_training_matrix(m)
+    base = _builder(m).row("A", "B", pd.Timestamp("2010-03-01"), "Y", True)
+    adj = _builder(m, rating_adjustment={"A": -30.0}).row("A", "B", pd.Timestamp("2010-03-01"), "Y", True)
+    # A penalized by 30 -> elo_diff drops by exactly 30; swapping teams flips the sign.
+    assert abs((adj["elo_diff"] - base["elo_diff"]) - (-30.0)) < 1e-9
+    swapped = _builder(m, rating_adjustment={"A": -30.0}).row("B", "A", pd.Timestamp("2010-03-01"), "Y", True)
+    assert abs(adj["elo_diff"] + swapped["elo_diff"]) < 1e-9  # symmetric
 
 
 def test_no_leakage_features_ignore_future():
