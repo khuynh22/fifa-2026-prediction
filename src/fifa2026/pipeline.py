@@ -35,7 +35,7 @@ class PredictionResult:
 def _ref_dir(cfg) -> Path:
     return Path("data/reference")
 
-def build_feature_builder(cfg, matches, squad_agg=None):
+def build_feature_builder(cfg, matches, rating_adjustment=None):
     elo = EloEngine(
         k=cfg.raw["elo"]["k"], home_advantage=cfg.raw["elo"]["home_advantage"],
         initial=cfg.raw["elo"]["initial"]).fit(matches)
@@ -43,13 +43,14 @@ def build_feature_builder(cfg, matches, squad_agg=None):
     context = ContextFeatures().fit(matches)
     confed = load_confederations(_ref_dir(cfg) / "confederations.csv")
     return FeatureBuilder(elo=elo, form=form, context=context, confederations=confed,
-                          squad_agg=squad_agg, hosts=cfg.raw["hosts_2026"],
-                          form_windows=cfg.raw["features"]["form_windows"])
+                          hosts=cfg.raw["hosts_2026"],
+                          form_windows=cfg.raw["features"]["form_windows"],
+                          rating_adjustment=rating_adjustment)
 
 def run_train(cfg, matches_csv=None) -> Path:
     csv = matches_csv or cfg.raw["sources"]["results_csv"]
     matches = load_matches(csv, train_start=cfg.train_start)
-    fb = build_feature_builder(cfg, matches, squad_agg=None)
+    fb = build_feature_builder(cfg, matches)
     X, y, gh, ga = fb.build_training_matrix(matches)
     # temporal split for ensemble weight tuning
     train_idx, val_idx = temporal_split(matches.dropna(subset=["home_score", "away_score"])
@@ -74,26 +75,33 @@ def _load_bracket_cfg(path):
     return teams, decided, data.get("as_of", "")
 
 
-def run_predict(cfg, models=None, matches_csv=None, bracket_path=None, squad_agg=None) -> PredictionResult:
+def run_predict(cfg, models=None, matches_csv=None, bracket_path=None, injuries_path=None) -> PredictionResult:
     from fifa2026.persistence import load_models
+    from fifa2026.squad_strength import load_injuries, availability_adjustment
     csv = matches_csv or cfg.raw["sources"]["results_csv"]
     matches = load_matches(csv, train_start=cfg.train_start)
     ensemble = models if models is not None else load_models(cfg.models_dir)[0]
     bpath = bracket_path or cfg.raw.get("bracket_path", "config/bracket_2026.yaml")
     teams, decided, as_of = _load_bracket_cfg(bpath)
     as_of_date = pd.Timestamp(as_of) if as_of else matches["date"].max()
-    # Forecast "as of" the bracket date: build prediction features from matches up
-    # to and including as_of_date only, so the model cannot peek at later results
-    # (the dataset may already contain games played after the forecast date).
     matches = matches[matches["date"] <= as_of_date]
-    fb = build_feature_builder(cfg, matches, squad_agg=squad_agg)
+    ipath = injuries_path or cfg.raw.get("injuries_path", "data/reference/injuries_2026.yaml")
+    injuries = load_injuries(ipath)
+    av = cfg.raw.get("availability", {})
+    rating_adjustment = availability_adjustment(
+        injuries, penalty_per_player=av.get("penalty_per_player", 10.0),
+        cap=av.get("cap", 40.0))
+    fb = build_feature_builder(cfg, matches, rating_adjustment=rating_adjustment)
     win_prob = build_win_prob(ensemble, fb, as_of_date, decided=decided)
     champ = champion_probabilities(teams, win_prob)
     rounds = round_probabilities(teams, win_prob)
     ties = [{"home": teams[i], "away": teams[i + 1],
              "p_home": win_prob(teams[i], teams[i + 1])} for i in range(0, len(teams), 2)]
+    availability_meta = {t: {"out": injuries.get(t, []), "elo_penalty": rating_adjustment[t]}
+                         for t in rating_adjustment}
     result = PredictionResult(champion_probs=champ, round_probs=rounds, tie_probs=ties,
-                              as_of=as_of, meta={"n_teams": len(teams)})
+                              as_of=as_of, meta={"n_teams": len(teams),
+                                                 "availability": availability_meta})
     Path(cfg.reports_dir).mkdir(parents=True, exist_ok=True)
     (Path(cfg.reports_dir) / "prediction.json").write_text(
         json.dumps(result.to_dict(), indent=2), encoding="utf-8")
@@ -142,7 +150,7 @@ def run_evaluate(cfg, matches_csv=None) -> dict:
     train_idx, test_idx = temporal_split(m, cutoff=cutoff)
     if len(test_idx) == 0:
         return {"metrics": {}, "calibration": [], "market": market}
-    fb = build_feature_builder(cfg, m.iloc[train_idx], squad_agg=None)
+    fb = build_feature_builder(cfg, m.iloc[train_idx])
     Xtr, ytr, gh, ga = fb.build_training_matrix(m.iloc[train_idx])
     poisson = PoissonModel().fit(Xtr, ytr, goals_home=gh, goals_away=ga)
     boosted = BoostedModel().fit(Xtr, ytr)

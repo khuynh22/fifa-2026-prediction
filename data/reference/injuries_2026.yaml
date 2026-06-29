@@ -1,0 +1,4 @@
+# Curated key absences for the 2026 field — update from team news.
+# Each team maps to a list of players who are out. Teams not listed (or with an
+# empty list) are treated as at full strength. Re-run `make predict` after editing.
+injuries: {}
