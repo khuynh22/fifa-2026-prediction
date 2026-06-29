@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 import pandas as pd
 from fifa2026.features.elo import EloEngine
@@ -30,6 +31,29 @@ def test_row_has_differential_features():
     assert "elo_diff" in row and "ppg_5_diff" in row and "same_confed" in row
     assert row["same_confed"] == 1
     assert row["elo_diff"] > 0  # A beat B twice before this date
+
+def test_build_training_matrix_returns_4tuple_aligned():
+    m = _matches()
+    fb = _builder(m)
+    result = fb.build_training_matrix(m)
+    assert len(result) == 4, "build_training_matrix must return a 4-tuple (X, y, goals_home, goals_away)"
+    X, y, gh, ga = result
+    assert len(X) == len(y) == len(gh) == len(ga), "all arrays must be aligned"
+    # Data sorted by date: [m1: 2-0, m2: 1-0, m3: 0-1]
+    assert list(gh) == [2, 1, 0], "goals_home must match date-sorted home_score"
+    assert list(ga) == [0, 0, 1], "goals_away must match date-sorted away_score"
+
+
+def test_build_training_matrix_rejects_static_squad_agg():
+    m = _matches()
+    fb = FeatureBuilder(
+        elo=EloEngine(home_advantage=0).fit(m), form=FormFeatures().fit(m),
+        context=ContextFeatures().fit(m), confederations={"A": "UEFA", "B": "UEFA"},
+        squad_agg=pd.DataFrame({"squad_value": [1.0]}), hosts=[], form_windows=[5],
+    )
+    with pytest.raises(ValueError, match="squad_agg is a static"):
+        fb.build_training_matrix(m)
+
 
 def test_no_leakage_features_ignore_future():
     """Feature row for a match must not change if FUTURE matches are added."""

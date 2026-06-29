@@ -2,9 +2,20 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 from fifa2026.ingest.matches import outcome
+from fifa2026.features.context import home_flag
 
 class FeatureBuilder:
     def __init__(self, elo, form, context, confederations, squad_agg, hosts, form_windows):
+        """Initialize a FeatureBuilder.
+
+        Parameters
+        ----------
+        squad_agg : pd.DataFrame or None
+            A STATIC (current) snapshot of squad-level aggregates with no date axis.
+            It is intended for prediction-time use only. Pass ``None`` when calling
+            ``build_training_matrix``; otherwise a ValueError is raised to prevent
+            training-time leakage of future squad information.
+        """
         self.elo = elo
         self.form = form
         self.context = context
@@ -12,11 +23,6 @@ class FeatureBuilder:
         self.squad_agg = squad_agg
         self.hosts = hosts
         self.form_windows = form_windows
-
-    def _home_flag(self, team, venue_country, neutral):
-        if neutral:
-            return 1 if team == venue_country else 0
-        return 1 if team == venue_country else 0
 
     def row(self, home_team, away_team, date, venue_country, neutral) -> dict:
         a, b = home_team, away_team
@@ -30,7 +36,8 @@ class FeatureBuilder:
             feats[f"ga_rate_{w}_diff"] = fa[f"ga_rate_{w}"] - fb[f"ga_rate_{w}"]
         feats["rest_diff"] = self.context.rest_days(a, date) - self.context.rest_days(b, date)
         feats["h2h_ppg"] = self.context.head_to_head(a, b, date)["h2h_ppg"]
-        feats["home_diff"] = self._home_flag(a, venue_country, neutral) - self._home_flag(b, venue_country, neutral)
+        feats["home_diff"] = (home_flag(a, venue_country, self.hosts)
+                              - home_flag(b, venue_country, self.hosts))
         feats["same_confed"] = int(self.confederations.get(a) == self.confederations.get(b)
                                    and self.confederations.get(a) is not None)
         if self.squad_agg is not None:
@@ -44,10 +51,19 @@ class FeatureBuilder:
         return feats
 
     def build_training_matrix(self, matches: pd.DataFrame):
-        rows, labels = [], []
+        if self.squad_agg is not None:
+            raise ValueError(
+                "squad_agg is a static (current) snapshot with no date axis; using it "
+                "for historical training rows leaks future information. Build the training "
+                "matrix with squad_agg=None, and only attach squad features at prediction time."
+            )
+        rows, labels, goals_home, goals_away = [], [], [], []
         m = matches.dropna(subset=["home_score", "away_score"]).sort_values("date")
         for _, g in m.iterrows():
             rows.append(self.row(g["home_team"], g["away_team"], g["date"],
                                  g.get("country", ""), bool(g.get("neutral", True))))
             labels.append(outcome(int(g["home_score"]), int(g["away_score"])))
-        return pd.DataFrame(rows).fillna(0.0), np.array(labels)
+            goals_home.append(int(g["home_score"]))
+            goals_away.append(int(g["away_score"]))
+        X = pd.DataFrame(rows).fillna(0.0)
+        return X, np.array(labels), np.array(goals_home), np.array(goals_away)
