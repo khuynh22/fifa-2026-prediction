@@ -1,8 +1,26 @@
 from __future__ import annotations
 import argparse
+import os
+from pathlib import Path
 import pandas as pd
 from fifa2026.knockout.resolve import resolve_tie
 from fifa2026.config import load_config
+
+
+def load_dotenv(path=".env") -> None:
+    """Minimal .env loader: set KEY=VALUE pairs into os.environ if not already set.
+
+    No third-party dependency. Lines starting with '#' and blank lines are skipped.
+    Existing environment variables take precedence (setdefault)."""
+    p = Path(path)
+    if not p.exists():
+        return
+    for line in p.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        os.environ.setdefault(key.strip(), value.strip())
 
 def build_win_prob(model, feature_builder, as_of_date, pen=None, depth=None, decided=None):
     pen = pen or {}
@@ -66,6 +84,7 @@ def _cmd_predict(args):
         print(f"  {team:25s} {p:6.1%}")
 
 def main(argv=None):
+    load_dotenv()  # pick up FOOTBALL_API_KEY from a local .env if present
     parser = argparse.ArgumentParser(prog="fifa2026")
     parser.add_argument("--config", default=None)
     sub = parser.add_subparsers(dest="cmd", required=True)
