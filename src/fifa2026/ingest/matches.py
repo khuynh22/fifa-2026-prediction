@@ -15,7 +15,7 @@ def outcome(home_score: int, away_score: int) -> int:
 def load_matches(csv_path: str | Path, train_start: str | None = None) -> pd.DataFrame:
     df = pd.read_csv(csv_path)
     df["date"] = pd.to_datetime(df["date"])
-    if isinstance(df["neutral"].dtype, object) or df["neutral"].dtype != bool:
+    if df["neutral"].dtype == object or df["neutral"].dtype != bool:
         df["neutral"] = df["neutral"].astype(str).str.lower().isin(["true", "1"])
     df["home_score"] = df["home_score"].astype("Int64")
     df["away_score"] = df["away_score"].astype("Int64")

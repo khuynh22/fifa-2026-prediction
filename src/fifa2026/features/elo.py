@@ -31,6 +31,12 @@ class EloEngine:
         return self
 
     def rating_before(self, team: str, date) -> float:
+        """Return the team's Elo rating immediately before `date`.
+
+        If `date` was not seen during ``fit`` (e.g. a future prediction date),
+        returns the latest known rating.  Do not query arbitrary past
+        non-match dates — only match dates and future dates are meaningful.
+        """
         return self._pre.get((team, pd.Timestamp(date)), self._current.get(team, self.initial))
 
     def rating_now(self, team: str) -> float:
