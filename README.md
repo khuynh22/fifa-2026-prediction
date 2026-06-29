@@ -5,10 +5,10 @@ champion** by modeling each knockout match (Round of 32 → Final), with proper
 extra-time / penalty-shootout handling, and benchmarked against the betting
 market.
 
-> Status: **design complete, implementation starting.**
+> Status: **implementation complete.**
 > Read the design first: [`docs/superpowers/specs/2026-06-28-fifa-2026-wc-prediction-design.md`](docs/superpowers/specs/2026-06-28-fifa-2026-wc-prediction-design.md)
 
-## What it does (planned)
+## What it does
 
 - Builds **point-in-time** features for international matches (no leakage).
 - Predicts each match with a **hybrid ensemble** — a Dixon-Coles/Poisson goals
@@ -18,7 +18,7 @@ market.
   survival probabilities.
 - Is **benchmarked against bookmaker odds** (odds are never a model input).
 
-## Reproduce (planned)
+## Reproduce
 
 ```bash
 make data       # ingest free datasets + football API (cached)
