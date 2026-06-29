@@ -2,6 +2,7 @@ from __future__ import annotations
 import argparse
 import pandas as pd
 from fifa2026.knockout.resolve import resolve_tie
+from fifa2026.config import load_config
 
 def build_win_prob(model, feature_builder, as_of_date, pen=None, depth=None, decided=None):
     pen = pen or {}
@@ -32,8 +33,37 @@ def build_win_prob(model, feature_builder, as_of_date, pen=None, depth=None, dec
         return 0.5 * (p_ab + (1.0 - p_ba))
     return win_prob
 
+def _cmd_data(args):
+    from fifa2026.ingest.download import fetch_results_csv, RESULTS_URL
+    cfg = load_config(args.config)
+    dest = cfg.raw_dir / "results.csv"
+    fetch_results_csv(RESULTS_URL, dest)
+    print(f"data ready: {dest}")
+
+def _cmd_train(args):
+    from fifa2026.pipeline import run_train
+    cfg = load_config(args.config)
+    out = run_train(cfg)
+    print(f"models saved: {out}")
+
+def _cmd_evaluate(args):
+    from fifa2026.pipeline import run_evaluate
+    cfg = load_config(args.config)
+    res = run_evaluate(cfg)
+    print(f"metrics: {res.get('metrics')}")
+
 def _cmd_predict(args):
-    raise SystemExit("predict requires trained model artifacts in models/ (see README)")
+    from fifa2026.pipeline import run_predict
+    from fifa2026.squad_enrich import build_squad_agg
+    from fifa2026.knockout.bracket import load_bracket
+    cfg = load_config(args.config)
+    teams = load_bracket(cfg.raw.get("bracket_path", "config/bracket_2026.yaml"))
+    squad_agg = build_squad_agg(cfg, teams)  # None if no API key
+    res = run_predict(cfg, squad_agg=squad_agg)
+    top = sorted(res.champion_probs.items(), key=lambda kv: kv[1], reverse=True)[:8]
+    print("Champion probabilities (top 8):")
+    for team, p in top:
+        print(f"  {team:25s} {p:6.1%}")
 
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="fifa2026")
@@ -42,7 +72,8 @@ def main(argv=None):
     for name in ("data", "train", "evaluate", "predict"):
         sub.add_parser(name)
     args = parser.parse_args(argv)
-    {"predict": _cmd_predict}.get(args.cmd, lambda a: print(f"{args.cmd}: see README"))(args)
+    {"data": _cmd_data, "train": _cmd_train,
+     "evaluate": _cmd_evaluate, "predict": _cmd_predict}[args.cmd](args)
 
 if __name__ == "__main__":
     main()
