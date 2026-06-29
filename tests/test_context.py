@@ -10,6 +10,12 @@ def test_home_flag():
     assert home_flag("Mexico", "Mexico", ["Mexico", "United States", "Canada"]) == 1
     assert home_flag("Brazil", "Mexico", ["Mexico"]) == 0
 
+def test_home_flag_cohost():
+    hosts = ["United States", "Mexico", "Canada"]
+    assert home_flag("Mexico", "United States", hosts) == 1   # co-host plays in another host country
+    assert home_flag("Brazil", "United States", hosts) == 0   # non-host away in a host country
+    assert home_flag("United States", "United States", hosts) == 1
+
 def test_rest_days_point_in_time():
     m = pd.DataFrame({
         "date": pd.to_datetime(["2010-06-01", "2010-06-08"]),

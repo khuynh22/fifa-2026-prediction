@@ -12,6 +12,12 @@ class _FB:
     def row(self, a, b, date, venue_country, neutral):
         return {"elo_diff": 1.0}
 
+def test_win_prob_is_complementary():
+    win_prob = build_win_prob(_Model(), _FB(), as_of_date=pd.Timestamp("2026-07-01"))
+    a, b = win_prob("A", "B"), win_prob("B", "A")
+    assert abs((a + b) - 1.0) < 1e-9
+
+
 def test_build_win_prob_and_champion():
     win_prob = build_win_prob(_Model(), _FB(), as_of_date=pd.Timestamp("2026-07-01"))
     p = win_prob("A", "B")

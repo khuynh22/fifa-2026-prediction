@@ -24,9 +24,13 @@ def _solve(teams: list[str], win_prob) -> dict[str, float]:
 
 
 def champion_probabilities(teams: list[str], win_prob) -> dict[str, float]:
-    if (len(teams) & (len(teams) - 1)) != 0:
-        raise ValueError("bracket size must be a power of 2")
-    return _solve(teams, win_prob)
+    if len(teams) < 1 or (len(teams) & (len(teams) - 1)) != 0:
+        raise ValueError("bracket size must be a positive power of 2")
+    probs = _solve(teams, win_prob)
+    total = sum(probs.values())
+    if total > 0:
+        probs = {k: v / total for k, v in probs.items()}
+    return probs
 
 
 def predict_champion(teams: list[str], win_prob):

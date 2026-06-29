@@ -9,7 +9,10 @@ def haversine_km(lat1, lon1, lat2, lon2) -> float:
     return 2 * 6371.0 * asin(sqrt(a))
 
 def home_flag(team: str, venue_country: str, hosts: list[str]) -> int:
-    return 1 if (team == venue_country or (team in hosts and venue_country in hosts and team == venue_country)) else 0
+    """1 if `team` is playing at home. True when the team IS the venue country,
+    or when both the team and the venue country are tournament co-hosts
+    (e.g. Mexico playing in the USA during the 2026 World Cup)."""
+    return 1 if (team == venue_country or (team in hosts and venue_country in hosts)) else 0
 
 class ContextFeatures:
     REST_CAP = 30
