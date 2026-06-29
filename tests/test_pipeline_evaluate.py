@@ -9,7 +9,7 @@ def _synth_csv(tmp_path):
     seq = [("A","B",2,0),("B","C",1,1),("C","D",0,2),("D","A",1,0)]
     for i in range(80):
         h,a,hs,as_ = seq[i % 4]
-        rows.append({"date": d + pd.Timedelta(days=20*i), "home_team": h, "away_team": a,
+        rows.append({"date": d + pd.Timedelta(days=60*i), "home_team": h, "away_team": a,
                      "home_score": hs, "away_score": as_, "tournament": "Friendly",
                      "city": "", "country": "", "neutral": True})
     p = tmp_path / "results.csv"; pd.DataFrame(rows).to_csv(p, index=False); return p

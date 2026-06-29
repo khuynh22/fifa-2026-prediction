@@ -12,6 +12,8 @@ def scoreline_probs(lam_h: float, lam_a: float, max_goals: int = 10) -> np.ndarr
     p_draw = np.trace(grid)
     p_away = np.triu(grid, 1).sum()
     total = p_home + p_draw + p_away
+    if not np.isfinite(total) or total < 1e-12:
+        return np.array([1/3, 1/3, 1/3])
     return np.array([p_home, p_draw, p_away]) / total
 
 class PoissonModel:

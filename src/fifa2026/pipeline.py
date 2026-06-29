@@ -104,26 +104,20 @@ def run_evaluate(cfg, matches_csv=None) -> dict:
     cutoff = cfg.raw.get("val_cutoff", "2022-01-01")
     train_idx, test_idx = temporal_split(m, cutoff=cutoff)
     if len(test_idx) == 0:
-        cutoff = str(m["date"].quantile(0.8).date())
-        train_idx, test_idx = temporal_split(m, cutoff=cutoff)
+        return {"metrics": {}, "calibration": [], "market": {}}
     fb = build_feature_builder(cfg, m.iloc[train_idx], squad_agg=None)
     Xtr, ytr, gh, ga = fb.build_training_matrix(m.iloc[train_idx])
     poisson = PoissonModel().fit(Xtr, ytr, goals_home=gh, goals_away=ga)
     boosted = BoostedModel().fit(Xtr, ytr)
     ensemble = EnsembleModel(poisson, boosted)
-    if len(test_idx) == 0:
-        result = {"metrics": {}, "calibration": [], "market": {}}
-    else:
-        Xte = pd.DataFrame([fb.row(r["home_team"], r["away_team"], r["date"],
-                                   r.get("country", ""), bool(r.get("neutral", True)))
-                            for _, r in m.iloc[test_idx].iterrows()]).fillna(0.0)
-        from fifa2026.ingest.matches import outcome
-        yte = np.array([outcome(int(r["home_score"]), int(r["away_score"]))
-                        for _, r in m.iloc[test_idx].iterrows()])
-        proba = ensemble.predict_proba(Xte[Xtr.columns])
-        nan_rows = np.any(np.isnan(proba), axis=1)
-        proba[nan_rows] = 1.0 / 3.0
-        result = {"metrics": evaluate_probs(yte, proba), "calibration": [], "market": {}}
+    Xte = pd.DataFrame([fb.row(r["home_team"], r["away_team"], r["date"],
+                               r.get("country", ""), bool(r.get("neutral", True)))
+                        for _, r in m.iloc[test_idx].iterrows()]).fillna(0.0)
+    from fifa2026.ingest.matches import outcome
+    yte = np.array([outcome(int(r["home_score"]), int(r["away_score"]))
+                    for _, r in m.iloc[test_idx].iterrows()])
+    proba = ensemble.predict_proba(Xte[Xtr.columns])
+    result = {"metrics": evaluate_probs(yte, proba), "calibration": [], "market": {}}
     Path(cfg.reports_dir).mkdir(parents=True, exist_ok=True)
     (Path(cfg.reports_dir) / "evaluation.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     return result
