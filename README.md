@@ -24,6 +24,9 @@ market.
   transparent, config-tunable heuristic — `config/default.yaml: availability` —
   not a trained signal). Live-API enrichment is optional future work (the free
   API tier does not expose the 2026 season or national-team injuries).
+- Projects a **most-likely-path bracket**: the predicted winner of each tie
+  advances to a predicted Final + champion, with per-match regulation
+  win/draw/loss and (~50/50) shootout odds — shown in the "Predicted path" tab.
 
 ## Quick start
 
