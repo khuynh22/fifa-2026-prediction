@@ -35,7 +35,7 @@ def main():
     st.caption(f"Forecast as of {prediction.get('as_of', '')}")
     figs = build_dashboard(prediction, evaluation, market)
     tabs = st.tabs(["Champion odds", "Bracket", "Survival", "Team explorer",
-                    "Calibration", "Availability"])
+                    "Calibration", "Availability", "Predicted path"])
     with tabs[0]:
         st.plotly_chart(figs["champion"], use_container_width=True)
         if "market" in figs:
@@ -62,6 +62,30 @@ def main():
             rows = [{"team": t, "players out": ", ".join(v.get("out", [])),
                      "elo penalty": v.get("elo_penalty")} for t, v in avail.items()]
             st.dataframe(pd.DataFrame(rows).sort_values("elo penalty"))
+
+    with tabs[6]:
+        st.subheader("Predicted path to the Final")
+        st.caption("Single most-likely bracket — each tie's predicted winner advances. "
+                   "Shootouts are modeled as ~50/50 (no penalty data). The path champion "
+                   "can differ from the highest-probability team — see the Champion odds tab.")
+        path = (prediction.get("meta") or {}).get("predicted_path") or {}
+        if not path.get("rounds"):
+            st.info("No predicted path available. Run `make predict`.")
+        else:
+            import pandas as pd
+            st.success(f"Predicted champion: {path.get('champion')}")
+            for rnd in path["rounds"]:
+                st.markdown(f"**{rnd['round']}**")
+                rows = [{
+                    "match": f"{m['team_a']} vs {m['team_b']}",
+                    "P(A win)": round(m["p_a_reg"], 3),
+                    "P(draw)": round(m["p_draw"], 3),
+                    "P(B win)": round(m["p_b_reg"], 3),
+                    "shootout A": round(m["p_a_shootout"], 2),
+                    "P(adv A)": round(m["p_a_advance"], 3),
+                    "winner": m["winner"],
+                } for m in rnd["matches"]]
+                st.dataframe(pd.DataFrame(rows))
 
 if __name__ == "__main__":
     main()

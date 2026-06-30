@@ -100,11 +100,16 @@ def run_predict(cfg, models=None, matches_csv=None, bracket_path=None, injuries_
     rounds = round_probabilities(teams, win_prob)
     ties = [{"home": teams[i], "away": teams[i + 1],
              "p_home": win_prob(teams[i], teams[i + 1])} for i in range(0, len(teams), 2)]
+    from fifa2026.knockout.walk import match_breakdown, walk_bracket
+    def _breakdown(a, b):
+        return match_breakdown(ensemble, fb, a, b, as_of_date, decided=decided)
+    predicted_path = walk_bracket(teams, _breakdown)
     availability_meta = {t: {"out": injuries.get(t, []), "elo_penalty": rating_adjustment[t]}
                          for t in rating_adjustment}
     result = PredictionResult(champion_probs=champ, round_probs=rounds, tie_probs=ties,
                               as_of=as_of, meta={"n_teams": len(teams),
-                                                 "availability": availability_meta})
+                                                 "availability": availability_meta,
+                                                 "predicted_path": predicted_path})
     Path(cfg.reports_dir).mkdir(parents=True, exist_ok=True)
     (Path(cfg.reports_dir) / "prediction.json").write_text(
         json.dumps(result.to_dict(), indent=2), encoding="utf-8")

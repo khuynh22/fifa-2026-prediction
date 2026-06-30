@@ -35,9 +35,6 @@ teams:
   - Algeria
   - Colombia         # M87
   - Ghana
-# Already-played R32 ties (pinned to certainty in the forecast).
-decided:
-  - {winner: Canada, loser: South Africa}
-  - {winner: Germany, loser: Paraguay}
-  - {winner: Netherlands, loser: Morocco}
-  - {winner: France, loser: Sweden}
+# Already-played knockout ties (pinned to certainty). Empty = predict all fresh.
+# Add entries like {winner: France, loser: Sweden} as real results come in.
+decided: []
