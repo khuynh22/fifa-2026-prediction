@@ -80,3 +80,21 @@ def test_injuries_lower_champion_prob(tmp_path):
     assert inj.champion_probs["France"] < base.champion_probs["France"]
     assert abs(sum(inj.champion_probs.values()) - 1.0) < 1e-6
     assert inj.meta["availability"]["France"]["elo_penalty"] == -40.0
+
+
+def test_predicted_path_present(tmp_path):
+    cfg = load_config()
+    object.__setattr__(cfg, "models_dir", tmp_path / "models")
+    object.__setattr__(cfg, "reports_dir", tmp_path / "reports")
+    csv = _synth_csv(tmp_path)
+    run_train(cfg, matches_csv=csv)
+    teams8 = ["Germany", "Paraguay", "France", "Sweden", "Canada", "South Africa", "Netherlands", "Morocco"]
+    bracket = tmp_path / "bracket.yaml"
+    bracket.write_text("teams:\n" + "".join(f"  - {t}\n" for t in teams8), encoding="utf-8")
+    empty = tmp_path / "none.yaml"; empty.write_text("injuries: {}\n", encoding="utf-8")
+    res = run_predict(cfg, matches_csv=csv, bracket_path=bracket, injuries_path=empty)
+    path = res.meta["predicted_path"]
+    assert [len(r["matches"]) for r in path["rounds"]] == [4, 2, 1]   # 8-team bracket
+    assert path["champion"] in teams8
+    # the champion is the winner of the Final
+    assert path["rounds"][-1]["matches"][0]["winner"] == path["champion"]
