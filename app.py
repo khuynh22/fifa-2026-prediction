@@ -66,7 +66,8 @@ def main():
     with tabs[6]:
         st.subheader("Predicted path to the Final")
         st.caption("Single most-likely bracket — each tie's predicted winner advances. "
-                   "Shootouts are modeled as ~50/50 (no penalty data).")
+                   "Shootouts are modeled as ~50/50 (no penalty data). The path champion "
+                   "can differ from the highest-probability team — see the Champion odds tab.")
         path = (prediction.get("meta") or {}).get("predicted_path") or {}
         if not path.get("rounds"):
             st.info("No predicted path available. Run `make predict`.")

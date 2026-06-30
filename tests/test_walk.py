@@ -36,6 +36,7 @@ def test_decided_tie_locks():
     bd = match_breakdown(_Model(), _FB(), "A", "B", pd.Timestamp("2026-07-01"), decided=decided)
     assert bd["decided"] and bd["winner"] == "A"
     assert bd["p_a_advance"] == 1.0 and bd["p_b_advance"] == 0.0
+    assert bd["p_a_shootout"] == 0.5  # neutral for a decided tie (no real shootout)
 
 def test_walk_bracket_structure():
     teams = ["A", "B", "C", "D", "E", "F", "G", "H"]

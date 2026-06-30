@@ -13,9 +13,11 @@ def match_breakdown(model, feature_builder, team_a, team_b, as_of_date,
     key = frozenset((team_a, team_b))
     if key in decided:
         a_adv = 1.0 if decided[key] == team_a else 0.0
+        # p_a_shootout is neutral (0.5) for a decided tie — there is no shootout
+        # prediction to make, and 0.5 avoids a misleading "100% shootout" in the UI.
         return {"team_a": team_a, "team_b": team_b, "decided": True,
                 "winner": decided[key], "p_a_reg": a_adv, "p_draw": 0.0,
-                "p_b_reg": 1.0 - a_adv, "p_a_shootout": a_adv,
+                "p_b_reg": 1.0 - a_adv, "p_a_shootout": 0.5,
                 "p_a_advance": a_adv, "p_b_advance": 1.0 - a_adv}
     hosts = getattr(feature_builder, "hosts", []) or []
     venue = team_a if team_a in hosts else (team_b if team_b in hosts else "")
