@@ -1,3 +1,10 @@
+"""Generic cached API-Football client.
+
+Currently unused by the live pipeline (player availability is sourced from a
+curated file — the free API tier does not expose the 2026 season or
+national-team injuries). Retained as infrastructure for a future paid-plan
+enrichment. See docs/superpowers/specs/2026-06-29-availability-adjustment-design.md.
+"""
 from __future__ import annotations
 import json
 import requests

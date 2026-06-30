@@ -22,3 +22,7 @@ features:
 hosts_2026: ["United States", "Mexico", "Canada"]
 val_cutoff: "2022-01-01"
 bracket_path: config/bracket_2026.yaml
+injuries_path: data/reference/injuries_2026.yaml
+availability:
+  penalty_per_player: 10
+  cap: 40

@@ -1,0 +1,12 @@
+# Curated key absences for the 2026 field — update from team news.
+# Each team maps to a list of players who are out. Teams not listed (or with an
+# empty list) are treated as at full strength. Re-run `make predict` after editing.
+#
+# As of 2026-06-29 (Round of 32). Sources: ESPN / Yahoo / FOX Sports WC injury trackers.
+injuries:
+  Netherlands: ["Xavi Simons"]            # ACL, out for the tournament
+  Germany: ["Nico Schlotterbeck"]         # ankle ligament, out for the rest of the WC
+  France: ["Hugo Ekitike"]                # Achilles rupture
+  Brazil: ["Rodrygo", "Estevao"]          # ACL / hamstring
+  Spain: ["Nico Williams", "Yeremy Pino"] # group-stage setbacks
+  England: ["Reece James"]                # hamstring, doubtful for the R32 tie

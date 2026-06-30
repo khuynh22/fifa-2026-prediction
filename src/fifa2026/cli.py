@@ -72,12 +72,8 @@ def _cmd_evaluate(args):
 
 def _cmd_predict(args):
     from fifa2026.pipeline import run_predict
-    from fifa2026.squad_enrich import build_squad_agg
-    from fifa2026.knockout.bracket import load_bracket
     cfg = load_config(args.config)
-    teams = load_bracket(cfg.raw.get("bracket_path", "config/bracket_2026.yaml"))
-    squad_agg = build_squad_agg(cfg, teams)  # None if no API key
-    res = run_predict(cfg, squad_agg=squad_agg)
+    res = run_predict(cfg)
     top = sorted(res.champion_probs.items(), key=lambda kv: kv[1], reverse=True)[:8]
     print("Champion probabilities (top 8):")
     for team, p in top:
